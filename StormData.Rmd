@@ -1,0 +1,187 @@
+Severe Weather Analysis (1950-2011)
+========================================================
+The following will be an analysis of the damage caused by severe weather events from the years of 1950 through 2011.  The original raw data classified individual weather events in several different ways, varying in spelling and terminology for similiar events.  The bulk of the analysis will be the methodology used to classify the 985 different event types over 61 years into 6 categories.  The analysis will look at damage to the population and economy between these different categories as well the amount of data gathered from year to year to give an understanding of what years influenced the data the most.
+
+## Data Preprocessing
+```{r packages}
+library(scales)
+library(ggplot2)
+library(reshape2)
+```
+```{r cache=TRUE}
+## Loading Raw Data File from .bz2 format
+data <- read.csv("repdata-data-StormData.csv.bz2", stringsAsFactors = F)
+```
+One of the steps in creating a tidier dataset was to categorize the several event-types (column **EVETYPE**).
+```{r unique levels}
+length(unique(data$EVTYPE)) ## Different event types
+```
+There are 985 types of weather events being classified in the raw data.  According to the Summary of Natural Hazard Statistics for 2009 from the NOAA database, these serperate types, for the sake of this analysis, can be categorized into 7 groups which will make the analysis more concise and readable.  The categories Marine and Tropical Cyclones were combined into one - Marine - because of their close relationship and the low amount of data for each, which makes the total 6 categories.  The link can be found here.
+http://www.ncdc.noaa.gov/oa/climate/sd/annsum2009.pdf
+
+### The following code shall represent the categorization code required for concise representation of the 985 weather types.
+```{r Event categorizing}
+events <- as.factor(data$EVTYPE) ## Made a factor vector of the events column
+events.backup <- events ## made a backup
+```
+The 7 categories for Weather Events are
+ 1. **Convection:** *Lighting; Tornado; Thunderstorm Wind; Hail*
+ 2. **Extreme:** *Temperatures: Cold; Heat*
+ 3. **Flood:** *Flash Flood; River Flood*
+ 4. **Marine:** *Coastal Storm; Tsunami; Rip Current;Tropical Storm / Hurricane*
+ 5. **Winter:** *Winter Storm; Ice; Avalanche*
+ 6. **Other:** *Drought; Dust Storm; Dust Devil; Rain*
+        (Unidentified types were also classified in this category)
+        
+The following codes will be sorted by each category.  Each section will have 2 areas.  The first part will show the specific **EVTYPE** being categorized.  The second part will show the code implemented to categorize them. Each **EVTYPE** went through an initial visual categorization.  This visual method is subject to human error, of course.  Anything missed by the initial categorization was categorized after the intial 7 sections.  This is possible because once an **EVTYPE** is categorized, it will only appear as the category name (ex. "Convection"), which will make the remaining **EVTYPE** easier to visually sift.  The group *Other* has a high variance in weather types, ranging from Rain-Volvanic Ash-etc.  *Other*, however, has a much smaller influence in the end data.
+
+#### Convection
+```{r convection}
+## These are the Types I chose to include in the Convection category
+levels(events)[c(4:6,8,64:66,214:220,225:228,231:272,347,358:395,463:476,491:494,524,605,607,615:617,675:680,748:750,754,758,759:830,834:844,855:876,878,930,931,932,952,953,959:970,985)]
+## Adding to group
+levels(events)[c(4:6,8,64:66,214:220,225:228,231:272,347,358:395,463:476,491:494,524,605,607,615:617,675:680,748:750,754,758,759:830,834:844,855:876,878,930,931,932,952,953,959:970,985)] <- "Convection"
+```
+#### Extreme Temperatures
+```{r extreme temperatures}
+## These are the Types I chose to include in the Extreme Temperatures category
+levels(events)[c(61:76,122:143,216:223,299:303,315:318,368:370,418:421,431:463,467,486,641:659,684,692)]
+## Adding to group
+levels(events)[c(61:76,122:143,216:223,299:303,315:318,368:370,418:421,431:463,467,486,641:659,684,692)] <- "Extreme Temperatures"
+```
+#### Flood
+```{r flood}
+## The groups included in the category Flood
+levels(events)[c(1:3,21,45,48,50,51,52,53,54,55,59,60,63,64,106,110:144,187,197,199,202,253,289,290,291,292,293,294,311:314,325,326,327,340:348,377:381,386,400:408,454,455,456,530,531,532,545:567)]
+## Adding to group
+levels(events)[c(1:3,21,45,48,50,51,52,53,54,55,59,60,63,64,106,110:144,187,197,199,202,253,289,290,291,292,293,294,311:314,325,326,327,340:348,377:381,386,400:408,454,455,456,530,531,532,545:567)] <- "Flood"
+```
+#### Marine & Tropical Cyclones
+```{r marine}
+## the groups included in the category Marine
+levels(events)[c(11,12,15,16,17,18,19,33,34,44,45,46,47,49,179:184,186:207,249:255,291,293,294,295,296,297,298,299,301,302,358,359,360,436:445)]
+## Adding to group
+levels(events)[c(11,12,15,16,17,18,19,33,34,44,45,46,47,49,179:184,186:207,249:255,291,293,294,295,296,297,298,299,301,302,358,359,360,436:445)] <- "Marine"
+```
+
+#### Winter
+```{r winter}
+## Grouped into Winter
+levels(events)[c(8,9,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,28:33,37,38,39,45,73,71:73,75:80,84:110,113,112,138:166,168:190,194:207,214,215,219,220,221,222,223,235,251:257,259:299,405:418)]
+## Adding to group
+levels(events)[c(8,9,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,28:33,37,38,39,45,73,71:73,75:80,84:110,113,112,138:166,168:190,194:207,214,215,219,220,221,222,223,235,251:257,259:299,405:418)] <- "Winter"
+```
+#### Other
+```{r other}
+## Grouped into Other
+levels(events)[c(4,5,6,7,9,11,12,13,15,16,17,18,19,20,21,22,23,24:44,46,47,48,49,52:75,78:87,91,92,93,95,96,98:108,113:180,181:196,210,212,213)]
+## Adding to group
+levels(events)[c(4,5,6,7,9,11,12,13,15,16,17,18,19,20,21,22,23,24:44,46,47,48,49,52:75,78:87,91,92,93,95,96,98:108,113:180,181:196,210,212,213)] <- "Other"
+```
+#### Remaining weather types that were missed by the original visual scan
+```{r missed}
+levels(events)[c(21:33)] <- "Convection";
+levels(events)[c(3,8,11,12,13,14,15,19,20)] <- "Convection";
+levels(events)[c(8,9,10,12)] <- "Winter";
+levels(events)[c(7:13)] <- "Other"
+```
+#### Now the newly categorized *events* vector can be reintroduced into the original raw data.
+```{r}
+data$EVTYPE <- events
+length(unique(data$EVTYPE))  ## Only 6 unique groups instead of 985
+```
+### Creating the final dataframe needed to answer the questions at hand
+These are the questions to be considered
+ 1. Across the United States, which types of events (as indicated in the **EVTYPE** variable) are most harmful with respect to population health?
+ 2. Across the United States, which types of events have the greatest economic consequences?
+
+The columns of the data are as follows
+```{r columns}
+names(data)
+```
+Both the questions together require adressing the relationship between *weather event types* -columns and the damage to *population and property*.  For this reason, I will subset the original raw data to only include the following columns.
+```{r subset columns}
+names(data)[c(2,8,23:28)]
+```
+#### Reasoning: Fatalities and Injuries
+Both these columns represent the harm to population health.  In the final dataset, these columns shall be combined to make the total number of incidents related to population harm.
+#### Reasoning: PROPDMG;PROPDMGEXP;CROPDMG;CROPDMGEXP
+Property damage is included because of the obvious.  Crop damage is included because it is considered agricultural property and both Crops and Property damage have negative economic effects.  CROPDMGEXP and PROPDMGEXP denote the exponetial value to be applied to the relative CROPDMG and PROPDMG values (M = Million$ = 1e6, K = Thousand$ = 1e3, H = Hundred$ = 1e2, etc.).  I will convert the alphabetical representations to the numeric equivalents.  This data can be found in the NOAA link immedietly following this section.  Some of the values in the EXP column are integers that will be converted into it's exponential value (ex. "3"" = 1e3).  Unknown values will be converted to an exponent of zero (ex. "?" = 1e0).  The final dataframe will require the values columns to be converted by the corresponding EXP values (ex. col1value^col2value).
+
+#### Subsetting the needed columns
+```{r subsetting}
+concise <- data[,c(2,8,23:28)]
+```
+#### Exponent Column Conversion
+```{r exponents}
+## Property Damage Exponents
+concise$PROPDMGEXP <- as.factor(concise$PROPDMGEXP)
+levels(concise$PROPDMGEXP)[c(1:5)] <- 1; 
+levels(concise$PROPDMGEXP)[c(6,13,14)] <- 1e6 ;
+levels(concise$PROPDMGEXP)[c(7)] <- 1e7;
+levels(concise$PROPDMGEXP)[c(2,10,11)] <- 1e2;
+levels(concise$PROPDMGEXP)[c(3)] <- 1e3;
+levels(concise$PROPDMGEXP)[c(4)] <- 1e4;
+levels(concise$PROPDMGEXP)[c(5)] <- 1e5;
+levels(concise$PROPDMGEXP)[c(8)] <- 1e8;
+levels(concise$PROPDMGEXP)[c(9)] <- 1e9;
+levels(concise$PROPDMGEXP)[c(10)] <- 1e3
+## Crop Damage Exponents
+concise$CROPDMGEXP <- as.factor(concise$CROPDMGEXP)
+levels(concise$CROPDMGEXP)[c(1:3)] <- 1
+levels(concise$CROPDMGEXP)[c(4,5)] <- 1e3
+levels(concise$CROPDMGEXP)[c(2)] <- 1e2
+levels(concise$CROPDMGEXP)[3] <- 1e9
+levels(concise$CROPDMGEXP)[c(5,6)] <- 1e6
+## All the exponents have been converted
+levels(concise$CROPDMGEXP) ## Crop damage exponent
+levels(concise$PROPDMGEXP) ## Property Damage exponent
+## Now we can convert them back to numeric vectors
+concise$PROPDMGEXP <- as.numeric(as.character(concise$PROPDMGEXP))
+concise$CROPDMGEXP <- as.numeric(as.character(concise$CROPDMGEXP))
+```
+
+#### Combining of Value columns to their corresponding exponents
+Now the code will multiple the PROP and CROP columns with their corresponding EXPonent column to get the final economic cost.  The formula will be as follows : **PROPDMG** x **PROPDMGEXP** + **CROPDMG** x **CROPDMGEXP** = **TOTALDMGCOST**
+```{r combining expo}
+## Formula
+Total <- (concise$PROPDMG*concise$PROPDMGEXP) + (concise$CROPDMG*concise$CROPDMGEXP)
+```
+#### Combining of FATALITIES and INJURIES
+This will be done automatically when making the final dataframe since both vectors are numeric and require no conversion
+
+#### Creating final data frame and naming the columns and reasoning for including the year
+The final data frame will consist of the Year;Event;Total.Population.Harm;Total.Economic.Damage (names may differ).  The reason for me to include the year is to show a density plot showing the years that contribute to the data the most.  This should have an effect on calculating disaster contingenies as well as other probabilities related to the technology available at the time of historical documentation.
+```{r}
+## Creating the Year vector
+Date <- as.Date(concise$BGN_DATE, format = "%m/%d/%Y %H:%M:%S")
+Year <- format(Date, format = "%Y") ## Will only display year
+numeric <- as.numeric(Year)
+Year <- cbind(Year,numeric)
+Year <- data.frame(Year)
+
+## Finished dataframe
+finalData <- data.frame(Year, Category = concise$EVTYPE, Population.Harm = concise$FATALITIES + concise$INJURIES, Economic.Cost = Total)
+melt <- melt(finalData[,3:5]) ## Simplifies data for graphing with facets
+## Totals the values sorted by Weather Category and Damage Classification
+final <- aggregate(melt$value, list(Category = melt$Category, Damage = melt$variable), sum)
+final$x[7:12] <- final$x[7:12]/1000000 ## scales down the Economic Costs to fit graph
+                                       ## Will Show in "Millions" in graph
+## Labeling
+levels(final$Damage) <- c("Total Population Harmed", "Economic Cost in Millions($)")
+```
+
+## Results
+### Questions: 1. Across the United States, which types of events (as indicated in the **EVTYPE** variable) are most harmful with respect to population health?  2. Across the United States, which types of events have the greatest economic consequences?
+
+```{r fig.width = 11, fig.height=11}
+q <- ggplot(final, aes(Category, x, fill = Damage))
+q + geom_bar(position = "dodge", stat = "identity") + labs(title = "Comparison of\nWeather Events\nOn Population and Economy") + theme(axis.text.x = element_text(angle = 45, vjust = 0.5)) + xlab("NOAA Weather Category") + ylab("Values (see legend for scale)")
+```
+
+### Frequency of data collected by year
+```{r fig.width = 11, fig.height=11}
+p <- ggplot(Year, aes(numeric, ..count..))
+bin <- 60
+p + geom_histogram(binwidth = bin, colour="white") + theme(axis.text.x = element_text(angle = 90, vjust = 0.5)) + xlab("Dates") + ylab("Quantity of Collected Data") + labs(title="Amount of Collected Data\nby Year")
+```
